@@ -9,3 +9,9 @@
     + Thông qua một RESTful API
     + Lập trình từ Python bằng module shodan
 
+
+## Nmap với module python-nmap 
+Chế độ scan trong python-nmap module có thể sử dụng:
+    - Chế độ đồng bộ: mỗi lần quét được thực hiện trên một cổng, nó phải kết thúc để chuyển sang cổng tiếp theo.
+    - Chế độ không đồng bộ: chúng ta có thể thực hiện quét trên các cổng khác nhau đồng thời và chúng ta có thể xác định một hàm gọi lại sẽ thực thi khi quá trình quét kết thúc trên một cổng cụ thể.
+
