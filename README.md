@@ -1,5 +1,3 @@
-# Reconnaissance
-
 ## Trích xuất thông tin từ Server với Shodan
 
 - Shodan (https://www.shodan.io) là từ viết tắt của Sentient Hyper-Optimized Data Access Network (System Shock 2).
