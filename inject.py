@@ -94,10 +94,15 @@ dll_bytes = dll_path.encode('utf-8') + b'\x00'
 
 # Bước 2: Mở tiến trình và cấp phát bộ nhớ
 hProcess = kernel32.OpenProcess(PROCESS_ALL_ACCESS, False, pid)
+<<<<<<< HEAD
+=======
+print(hProcess)
+>>>>>>> 0038e50 (docs: Update doc_dll_injection.md with detailed API reference and scenario breakdown)
 if not hProcess:
     print(f"[-] OpenProcess thất bại. Lỗi: {kernel32.GetLastError()}")
     sys.exit(1)
 
+<<<<<<< HEAD
 addr = kernel32.VirtualAllocEx(hProcess, None, len(dll_bytes), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE)
 if not addr:
     print(f"[-] VirtualAllocEx thất bại.")
@@ -131,3 +136,7 @@ if hThread:
 else:
     print(f"[-] Inject thất bại. Lỗi: {kernel32.GetLastError()}")
     kernel32.CloseHandle(hProcess)
+=======
+
+
+>>>>>>> 0038e50 (docs: Update doc_dll_injection.md with detailed API reference and scenario breakdown)
